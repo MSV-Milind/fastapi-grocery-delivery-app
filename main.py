@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel, Field
 from typing import Optional
 
@@ -99,6 +99,8 @@ def filter_items(category:Optional[str]=None,max_price:Optional[int]=None,unit:O
 @app.get("/items/search")
 def search_items(keyword:str):
     results=[i for i in items if keyword.lower() in i["name"].lower() or keyword.lower() in i["category"].lower()]
+    if not results:
+        return {"message":f"No items found matching {keyword}","results":[],"total_found":0}
     return {"results":results,"total_found":len(results)}
 
 #Q17 Creating GET "../sort" for items
@@ -228,7 +230,7 @@ def add_item(new_item:NewItem):
 def update_item(item_id:int,price:Optional[int]=None,in_stock:Optional[bool]=None):
     item=find_item(item_id)
     if not item:
-        return {"error":"Item not found"}
+        raise HTTPException(status_code=404, detail="Item not found")
     if price is not None:
         item["price"]=price
     if in_stock is not None:
@@ -240,7 +242,7 @@ def update_item(item_id:int,price:Optional[int]=None,in_stock:Optional[bool]=Non
 def delete_item(item_id:int):
     item=find_item(item_id)
     if not item:
-        return {"error":"Item not found"}
+        raise HTTPException(status_code=404, detail="Item not found")
     for order in orders:
         if order["item_name"]==item["name"]:
             return {"error":"Item has active orders"}
